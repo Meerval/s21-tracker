@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>School21 — Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Unbounded:wght@300;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #060608;
+      --surface: #0d0d12;
+      --card: #0f0f16;
+      --border: #1a1a28;
+      --border2: #252535;
+      --accent: #7c6cff;
+      --accent-glow: rgba(124,108,255,0.25);
+      --green: #00d68f;
+      --green-glow: rgba(0,214,143,0.2);
+      --red: #ff4567;
+      --yellow: #ffb547;
+      --text: #e2e2f0;
+      --muted: #4a4a6a;
+      --muted2: #6a6a8a;
+      --new-bg: rgba(0,214,143,0.06);
+      --new-border: rgba(0,214,143,0.25);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:var(--bg); color:var(--text); font-family:'JetBrains Mono',monospace; min-height:100vh; }
+    body::after {
+      content:''; position:fixed; inset:0; pointer-events:none; z-index:9999; opacity:0.4;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    }
+    .layout { display:grid; grid-template-columns:320px 1fr; min-height:100vh; }
+
+    /* Sidebar */
+    .sidebar {
+      background:var(--surface); border-right:1px solid var(--border);
+      padding:28px 20px; display:flex; flex-direction:column; gap:20px;
+      overflow-y:auto; position:sticky; top:0; height:100vh;
+    }
+    .logo { font-family:'Unbounded',sans-serif; font-weight:900; font-size:18px; letter-spacing:-1px; line-height:1; }
+    .logo .s { color:var(--accent); }
+    .logo .sub { font-size:9px; font-weight:300; letter-spacing:3px; color:var(--muted2); margin-top:4px; font-family:'JetBrains Mono',monospace; }
+    .divider { height:1px; background:var(--border); flex-shrink:0; }
+    .block-title { font-size:9px; letter-spacing:2.5px; text-transform:uppercase; color:var(--muted); margin-bottom:12px; font-weight:600; }
+
+    /* Inputs */
+    .field-label { display:block; font-size:10px; color:var(--muted2); margin-bottom:6px; letter-spacing:0.5px; }
+    input[type="text"], input[type="password"] {
+      width:100%; background:var(--bg); border:1px solid var(--border); border-radius:6px;
+      padding:10px 12px; color:var(--text); font-family:'JetBrains Mono',monospace;
+      font-size:12px; outline:none; transition:border-color 0.15s; margin-bottom:12px;
+    }
+    input:focus { border-color:var(--accent); }
+    input::placeholder { color:var(--muted); }
+
+    /* Checkboxes */
+    .cb-group { display:flex; flex-direction:column; gap:5px; }
+    .cb-item {
+      display:flex; align-items:center; gap:10px; cursor:pointer;
+      padding:7px 10px; border-radius:6px; border:1px solid transparent;
+      transition:all 0.15s; font-size:11px; user-select:none;
+    }
+    .cb-item:hover { background:rgba(124,108,255,0.05); border-color:var(--border); }
+    .cb-item.checked { background:rgba(124,108,255,0.08); border-color:rgba(124,108,255,0.3); }
+    .cb-box {
+      width:16px; height:16px; border:1px solid var(--border2); border-radius:4px;
+      display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.15s;
+    }
+    .cb-item.checked .cb-box { background:var(--accent); border-color:var(--accent); }
+    .cb-check { color:#fff; font-size:10px; display:none; }
+    .cb-item.checked .cb-check { display:block; }
+
+    /* Status dots */
+    .sdot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+    .sdot-accepted   { background:var(--green); }
+    .sdot-progress   { background:var(--accent); }
+    .sdot-reviews    { background:var(--yellow); }
+    .sdot-registered { background:#4fc3f7; }
+    .sdot-assigned   { background:var(--muted2); }
+    .sdot-failed     { background:var(--red); }
+
+    /* Radio buttons */
+    .rb-group { display:flex; flex-direction:column; gap:5px; }
+    .rb-item {
+      display:flex; align-items:center; gap:10px; cursor:pointer;
+      padding:7px 10px; border-radius:6px; border:1px solid transparent;
+      transition:all 0.15s; font-size:11px; user-select:none;
+    }
+    .rb-item:hover { background:rgba(124,108,255,0.05); border-color:var(--border); }
+    .rb-item.selected { background:rgba(124,108,255,0.08); border-color:rgba(124,108,255,0.3); }
+    .rb-circle {
+      width:16px; height:16px; border:1px solid var(--border2); border-radius:50%;
+      display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.15s;
+    }
+    .rb-item.selected .rb-circle { border-color:var(--accent); }
+    .rb-dot { width:8px; height:8px; border-radius:50%; background:var(--accent); display:none; }
+    .rb-item.selected .rb-dot { display:block; }
+
+    /* Campus sub-list */
+    .campus-sublist {
+      display:none; flex-direction:column; gap:4px;
+      padding-left:14px; margin-top:2px;
+    }
+    .campus-sublist.open { display:flex; }
+    .cb-item.sub { padding:5px 10px; font-size:10px; }
+
+    /* Buttons */
+    .btn {
+      display:flex; align-items:center; justify-content:center; gap:8px;
+      width:100%; padding:11px; border-radius:8px; border:none;
+      font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:600;
+      cursor:pointer; transition:all 0.2s; letter-spacing:0.5px;
+    }
+    .btn-run { background:var(--accent); color:#fff; box-shadow:0 0 20px var(--accent-glow); }
+    .btn-run:hover { background:#9080ff; box-shadow:0 0 30px var(--accent-glow); transform:translateY(-1px); }
+    .btn-run:disabled { opacity:0.4; cursor:not-allowed; transform:none; box-shadow:none; }
+    .btn-save { background:transparent; color:var(--green); border:1px solid rgba(0,214,143,0.3); }
+    .btn-save:hover { background:var(--green-glow); border-color:var(--green); }
+    .btn-save:disabled { opacity:0.3; cursor:not-allowed; }
+    .btn-csv { background:transparent; color:#4fc3f7; border:1px solid rgba(79,195,247,0.3); font-size:11px; padding:8px; }
+    .btn-csv:hover { background:rgba(79,195,247,0.08); border-color:#4fc3f7; }
+    .btn-csv:disabled { opacity:0.3; cursor:not-allowed; }
+    .btn-outline { background:transparent; color:var(--muted2); border:1px solid var(--border2); font-size:11px; padding:8px; }
+    .btn-outline:hover { color:var(--text); }
+
+    /* Progress bar */
+    .progress-bar-wrap {
+      display:none; height:3px; background:var(--border); border-radius:2px; overflow:hidden; margin-top:-8px;
+    }
+    .progress-bar-wrap.visible { display:block; }
+    .progress-bar {
+      height:100%; background:var(--accent); border-radius:2px;
+      transition:width 0.3s ease; width:0%;
+      box-shadow:0 0 8px var(--accent-glow);
+    }
+
+    /* Stats */
+    .stat-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .stat-mini { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px; text-align:center; }
+    .stat-val { font-family:'Unbounded',sans-serif; font-size:20px; font-weight:700; color:var(--accent); line-height:1; }
+    .stat-val.green { color:var(--green); }
+    .stat-lbl { font-size:9px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-top:4px; }
+
+    /* Main */
+    .main { padding:28px; overflow-y:auto; }
+    .main-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:10px; }
+    .main-title { font-family:'Unbounded',sans-serif; font-size:13px; font-weight:500; color:var(--muted2); letter-spacing:1px; }
+    .header-right { display:flex; align-items:center; gap:8px; }
+    .search-input {
+      background:var(--surface); border:1px solid var(--border); border-radius:6px;
+      padding:8px 12px; color:var(--text); font-family:'JetBrains Mono',monospace;
+      font-size:12px; outline:none; width:220px; transition:border-color 0.15s;
+    }
+    .search-input:focus { border-color:var(--accent); }
+    .search-input::placeholder { color:var(--muted); }
+
+    /* Sort indicator */
+    .sort-btn {
+      background:var(--surface); border:1px solid var(--border); border-radius:6px;
+      padding:7px 10px; color:var(--muted2); font-family:'JetBrains Mono',monospace;
+      font-size:10px; cursor:pointer; display:flex; align-items:center; gap:4px;
+      transition:all 0.15s; white-space:nowrap;
+    }
+    .sort-btn:hover { color:var(--text); border-color:var(--border2); }
+    .sort-btn.active { color:var(--accent); border-color:rgba(124,108,255,0.4); }
+
+    /* Table */
+    .table-wrap { background:var(--card); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+    .table-head {
+      display:grid; grid-template-columns:2fr 1.2fr 0.7fr 1fr 1.2fr 1.2fr;
+      padding:12px 20px; background:var(--surface); border-bottom:1px solid var(--border);
+      font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted);
+    }
+    .table-head > div {
+      cursor:pointer; display:flex; align-items:center; gap:4px; user-select:none;
+      transition:color 0.15s;
+    }
+    .table-head > div:hover { color:var(--muted2); }
+    .table-head > div.sort-asc::after  { content:'↑'; color:var(--accent); }
+    .table-head > div.sort-desc::after { content:'↓'; color:var(--accent); }
+    .student-row {
+      display:grid; grid-template-columns:2fr 1.2fr 0.7fr 1fr 1.2fr 1.2fr;
+      padding:13px 20px; border-bottom:1px solid var(--border);
+      align-items:center; transition:background 0.15s; position:relative;
+    }
+    .student-row:last-child { border-bottom:none; }
+    .student-row:hover { background:rgba(124,108,255,0.04); }
+    .student-row.is-new { background:var(--new-bg); border-bottom-color:var(--new-border); }
+    .student-row.is-new::before {
+      content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--green);
+    }
+    .student-login { font-weight:600; font-size:13px; display:flex; align-items:center; gap:8px; }
+    .new-badge { background:var(--green); color:#000; font-size:8px; font-weight:700; letter-spacing:1px; padding:2px 6px; border-radius:3px; }
+    .cell { font-size:11px; color:var(--muted2); }
+    .level-badge {
+      display:inline-flex; align-items:center; justify-content:center;
+      width:26px; height:26px; border-radius:50%;
+      background:rgba(124,108,255,0.15); border:1px solid rgba(124,108,255,0.3);
+      color:var(--accent); font-size:11px; font-weight:700;
+    }
+    .chip {
+      display:inline-block; padding:3px 8px; border-radius:4px;
+      font-size:9px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase;
+    }
+    .chip-ACCEPTED    { background:rgba(0,214,143,0.12); color:var(--green); }
+    .chip-IN_PROGRESS { background:rgba(124,108,255,0.12); color:var(--accent); }
+    .chip-IN_REVIEWS  { background:rgba(255,181,71,0.12); color:var(--yellow); }
+    .chip-REGISTERED  { background:rgba(79,195,247,0.12); color:#4fc3f7; }
+    .chip-ASSIGNED    { background:rgba(106,106,138,0.12); color:var(--muted2); }
+    .chip-FAILED      { background:rgba(255,69,103,0.12); color:var(--red); }
+
+    .pdot { width:5px; height:5px; border-radius:50%; display:inline-block; margin-right:4px; }
+    .pdot-ACTIVE             { background:var(--green); }
+    .pdot-FROZEN             { background:#4fc3f7; }
+    .pdot-EXPELLED,
+    .pdot-BLOCKED            { background:var(--red); }
+    .pdot-TEMPORARY_BLOCKING { background:var(--yellow); }
+    .pdot-STUDY_COMPLETED    { background:var(--muted2); }
+
+    /* Virtual scroll container */
+    .vscroll-outer { overflow-y:auto; max-height:calc(100vh - 180px); }
+    .vscroll-inner { position:relative; }
+    .vscroll-spacer-top, .vscroll-spacer-bottom { width:100%; }
+
+    /* Overview cards */
+    .overview-grid { display:flex; flex-direction:column; gap:10px; padding:4px 0; }
+    .ov-card {
+      background:var(--card); border:1px solid var(--border); border-radius:10px;
+      padding:14px 16px; cursor:pointer; transition:all 0.15s; position:relative; overflow:hidden;
+    }
+    .ov-card:hover { border-color:var(--border2); background:rgba(124,108,255,0.04); }
+    .ov-card.has-new { border-color:var(--new-border); background:var(--new-bg); }
+    .ov-card.has-new::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--green); }
+    .ov-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px; }
+    .ov-project-id { font-size:9px; color:var(--muted); letter-spacing:1px; }
+    .ov-project-name { font-size:13px; font-weight:700; color:var(--text); line-height:1.3; margin-bottom:2px; }
+    .ov-stats { display:flex; gap:12px; align-items:center; }
+    .ov-stat { text-align:center; }
+    .ov-stat-val { font-family:'Unbounded',sans-serif; font-size:18px; font-weight:700; line-height:1; }
+    .ov-stat-val.accent { color:var(--accent); }
+    .ov-stat-val.green  { color:var(--green); }
+    .ov-stat-lbl { font-size:8px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-top:2px; }
+    .ov-spinner { width:14px; height:14px; border:2px solid var(--border2); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; flex-shrink:0; }
+    .ov-open-btn {
+      font-size:9px; padding:3px 8px; border-radius:4px; border:1px solid var(--border2);
+      color:var(--muted2); background:none; cursor:pointer; transition:all 0.15s; white-space:nowrap;
+    }
+    .ov-open-btn:hover { color:var(--text); border-color:var(--accent); }
+    .ov-empty { color:var(--muted); font-size:12px; padding:40px; text-align:center; }
+    .ov-delete-btn {
+      background:none; border:none; color:var(--muted); font-size:14px; cursor:pointer;
+      padding:4px 6px; border-radius:4px; line-height:1; transition:all 0.15s; flex-shrink:0;
+    }
+    .ov-delete-btn:hover { color:var(--red); background:rgba(255,69,103,0.1); }
+
+    /* Project dropdown */
+    .proj-dropdown {
+      position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:100;
+      background:var(--surface); border:1px solid var(--border2); border-radius:8px;
+      overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,0.4);
+    }
+    .proj-dropdown-item {
+      padding:9px 12px; cursor:pointer; transition:background 0.1s;
+      display:flex; flex-direction:column; gap:2px; border-bottom:1px solid var(--border);
+    }
+    .proj-dropdown-item:last-child { border-bottom:none; }
+    .proj-dropdown-item:hover { background:rgba(124,108,255,0.08); }
+    .proj-dropdown-id { font-size:9px; color:var(--muted); letter-spacing:1px; }
+    .proj-dropdown-name { font-size:11px; color:var(--text); font-weight:600; }
+
+    /* States */
+    .state-box { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80px 40px; color:var(--muted); gap:16px; }
+    .state-icon { font-size:32px; opacity:0.4; }
+    .state-text { font-size:13px; }
+    .spinner { width:32px; height:32px; border:2px solid var(--border2); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+
+    /* Toast */
+    .toast {
+      position:fixed; bottom:24px; right:24px; background:var(--surface);
+      border:1px solid var(--border2); border-radius:10px; padding:14px 20px;
+      font-size:12px; z-index:10000; display:flex; align-items:center; gap:10px;
+      transform:translateY(80px); opacity:0; transition:all 0.3s ease; max-width:340px;
+    }
+    .toast.show { transform:translateY(0); opacity:1; }
+    .toast.success { border-color:rgba(0,214,143,0.4); }
+    .toast.error   { border-color:rgba(255,69,103,0.4); }
+
+    /* Detail panel */
+    .detail-panel {
+      position:fixed; right:0; top:0; bottom:0; width:340px;
+      background:var(--surface); border-left:1px solid var(--border);
+      z-index:1000; transform:translateX(100%); transition:transform 0.25s ease;
+      display:flex; flex-direction:column; overflow:hidden;
+    }
+    .detail-panel.open { transform:translateX(0); }
+    .detail-header {
+      padding:20px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .detail-login { font-weight:700; font-size:15px; }
+    .detail-close {
+      background:none; border:none; color:var(--muted2); font-size:18px;
+      cursor:pointer; padding:4px 8px; border-radius:4px;
+      transition:color 0.15s;
+    }
+    .detail-close:hover { color:var(--text); }
+    .detail-body { padding:20px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:16px; }
+    .detail-section-title { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:10px; }
+    .detail-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border); font-size:11px; }
+    .detail-row:last-child { border-bottom:none; }
+    .detail-key { color:var(--muted2); }
+    .detail-val { color:var(--text); font-weight:600; }
+    .detail-spinner { display:flex; align-items:center; justify-content:center; padding:30px; }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div>
+      <div class="logo"><span class="s">S21</span> TRACKER<div class="sub">PARTICIPANT MONITOR</div></div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Auth -->
+    <div id="authForm">
+      <div class="block-title">// авторизация</div>
+      <label class="field-label">ЛОГИН</label>
+      <input type="text" id="username" placeholder="твой-логин" onkeydown="if(event.key==='Enter')loginBtn.click()" />
+      <label class="field-label">ПАРОЛЬ</label>
+      <input type="password" id="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')loginBtn.click()" />
+      <button class="btn btn-run" id="loginBtn" onclick="doLogin()" style="margin-top:4px">→ ВОЙТИ</button>
+    </div>
+
+    <!-- Auth status indicator -->
+    <div id="authStatus" style="display:none; font-size:11px; color:var(--text); font-weight:600; padding:2px 0;">
+      <span id="authStatusText"></span>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Everything below is hidden until auth succeeds -->
+    <div id="gated" style="display:none; flex-direction:column; gap:20px;">
+
+    <!-- Project -->
+    <div>
+      <div class="block-title">// проект</div>
+      <label class="field-label">PROJECT ID</label>
+      <div style="position:relative">
+        <input type="text" id="projectId" placeholder="введи ID проекта" oninput="onProjectIdInput()" onfocus="showProjectDropdown()" onblur="setTimeout(hideProjectDropdown,150)" style="margin-bottom:0;width:100%" />
+        <div id="projectDropdown" class="proj-dropdown" style="display:none"></div>
+      </div>
+      <div style="margin-bottom:8px"></div>
+      <div id="projectCard" style="display:none;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;flex-direction:column;gap:6px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text);line-height:1.3" id="pcTitle"></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="pcChips"></div>
+        <div style="font-size:10px;color:var(--muted2);line-height:1.4" id="pcDesc"></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Campuses -->
+    <div>
+      <div class="block-title">// кампусы</div>
+      <div class="rb-group">
+        <div class="rb-item selected" id="cg-all" onclick="selectCampusGroup('all')">
+          <div class="rb-circle"><div class="rb-dot"></div></div>
+          <span>ВСЕ КАМПУСЫ</span>
+        </div>
+        <div class="rb-item" id="cg-main" onclick="selectCampusGroup('main')">
+          <div class="rb-circle"><div class="rb-dot"></div></div>
+          <span>MSK / KZN / NSK</span>
+        </div>
+        <div class="rb-item" id="cg-other" onclick="selectCampusGroup('other')">
+          <div class="rb-circle"><div class="rb-dot"></div></div>
+          <span>!(MSK / KZN / NSK)</span>
+        </div>
+        <div class="rb-item" id="cg-custom" onclick="selectCampusGroup('custom')" style="display:none">
+          <div class="rb-circle"><div class="rb-dot"></div></div>
+          <span>ВЫБРАТЬ ВРУЧНУЮ</span>
+        </div>
+        <div class="campus-sublist" id="campusSublist"></div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Statuses -->
+    <div>
+      <div class="block-title">// статусы проекта</div>
+      <div class="cb-group">
+        <div class="cb-item checked" data-status="ACCEPTED" onclick="this.classList.toggle('checked')">
+          <div class="cb-box"><span class="cb-check">✓</span></div>
+          <div style="display:flex;align-items:center;gap:6px"><div class="sdot sdot-accepted"></div>ACCEPTED</div>
+        </div>
+        <div class="cb-item checked" data-status="IN_PROGRESS" onclick="this.classList.toggle('checked')">
+          <div class="cb-box"><span class="cb-check">✓</span></div>
+          <div style="display:flex;align-items:center;gap:6px"><div class="sdot sdot-progress"></div>IN_PROGRESS</div>
+        </div>
+        <div class="cb-item checked" data-status="IN_REVIEWS" onclick="this.classList.toggle('checked')">
+          <div class="cb-box"><span class="cb-check">✓</span></div>
+          <div style="display:flex;align-items:center;gap:6px"><div class="sdot sdot-reviews"></div>IN_REVIEWS</div>
+        </div>
+        <div class="cb-item checked" data-status="REGISTERED" onclick="this.classList.toggle('checked')">
+          <div class="cb-box"><span class="cb-check">✓</span></div>
+          <div style="display:flex;align-items:center;gap:6px"><div class="sdot sdot-registered"></div>REGISTERED</div>
+        </div>
+        <div class="cb-item" data-status="ASSIGNED" onclick="this.classList.toggle('checked')">
+          <div class="cb-box"><span class="cb-check">✓</span></div>
+          <div style="display:flex;align-items:center;gap:6px"><div class="sdot sdot-assigned"></div>ASSIGNED</div>
+        </div>
+        <div class="cb-item" data-status="FAILED" onclick="this.classList.toggle('checked')">
+          <div class="cb-box"><span class="cb-check">✓</span></div>
+          <div style="display:flex;align-items:center;gap:6px"><div class="sdot sdot-failed"></div>FAILED</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Actions -->
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-outline" id="backToOverviewBtn" onclick="backToOverview()" style="display:none">← ОБЗОР ПРОЕКТОВ</button>
+      <button class="btn btn-run" id="searchBtn" onclick="runSearch()">▶ НАЙТИ УЧАСТНИКОВ</button>
+      <div class="progress-bar-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+      <button class="btn btn-save" id="saveBtn" onclick="saveList()" disabled>↓ СОХРАНИТЬ СПИСОК</button>
+      <button class="btn btn-csv" id="csvBtn" onclick="exportCsv()" disabled>⇩ ЭКСПОРТ CSV</button>
+      <button class="btn btn-outline" onclick="clearSaved()">✕ ОЧИСТИТЬ СОХРАНЁННОЕ</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Stats -->
+    <div>
+      <div class="block-title">// статистика</div>
+      <div class="stat-row">
+        <div class="stat-mini"><div class="stat-val" id="statTotal">—</div><div class="stat-lbl">Найдено</div></div>
+        <div class="stat-mini"><div class="stat-val green" id="statNew">—</div><div class="stat-lbl">Новых</div></div>
+      </div>
+    </div>
+    </div><!-- /#gated -->
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="main-header">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="main-title">СПИСОК УЧАСТНИКОВ</div>
+        <div id="activeCampusesWrap" style="display:none;flex-wrap:wrap;gap:4px"></div>
+      </div>
+      <div class="header-right" id="searchWrap" style="display:none">
+        <input class="search-input" id="searchFilter" placeholder="поиск по логину..." oninput="filterTable()" />
+      </div>
+    </div>
+    <!-- Overview: shown on startup, hidden when a search runs -->
+    <div id="overviewWrap" style="display:none">
+      <div id="overviewGrid" class="overview-grid"></div>
+    </div>
+
+    <div class="table-wrap" id="tableWrap" style="display:none">
+      <div class="state-box">
+        <div class="state-icon">◎</div>
+        <div class="state-text">Настрой параметры и нажми «Найти участников»</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Detail panel -->
+<div class="detail-panel" id="detailPanel">
+  <div class="detail-header">
+    <div class="detail-login" id="detailLogin">—</div>
+    <button class="detail-close" onclick="closeDetail()">✕</button>
+  </div>
+  <div class="detail-body" id="detailBody"></div>
+</div>
+
+<div class="toast" id="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
+
+<script>
+  const BASE_URL  = '/proxy/api';
+  const AUTH_URL  = '/proxy/auth';
+  const TOKEN_KEY = 'school21_token';
+
+  // MSK/KZN/NSK exact shortNames
+  const MAIN_CAMPUSES = new Set(['21 Moscow','21 Kazan','21 Novosibirsk']);
+
+  // Batch size for parallel participant info requests
+  // 50 concurrent requests is safe for most browsers (6 per host * keep-alive reuse)
+  const BATCH = 50;
+
+  let accessToken = '';
+  let allStudents  = [];      // full fetched list
+  let filteredList = [];      // after search filter + sort
+  let savedLogins  = new Set();
+  let campusList   = [];      // [{id, shortName, isMain}]
+  let currentCampusGroup = 'all';
+  let currentProjectId = '';
+
+  // Sort state
+  let sortCol = null;   // 'login'|'campus'|'level'|'xp'|'projectStatus'|'participantStatus'
+  let sortDir = 'asc';
+
+  // ── Init ─────────────────────────────────────────────
+  window.onload = async () => {
+
+    // Load default credentials from server (set via --username / --password at startup)
+    try {
+      const cfgResp = await fetch('/config');
+      if (cfgResp.ok) {
+        const cfg = await cfgResp.json();
+        if (cfg.username) document.getElementById('username').value = cfg.username;
+        if (cfg.password) document.getElementById('password').value = cfg.password;
+      }
+    } catch(e) { /* server may not expose /config in other environments */ }
+
+    // Restore cached token if available
+    const cached = sessionStorage.getItem(TOKEN_KEY);
+    if (cached) {
+      accessToken = cached;
+      showAuthorized(document.getElementById('username').value.trim());
+    }
+    // loadCampuses() calls getAccessToken(silent=true) if no token yet,
+    // which reads the fields filled above from /config
+    await loadCampuses();
+  };
+
+  // ── Overview: startup summary of all saved projects ────────────
+  // ── Overview: startup summary of all projects with saved settings ──
+
+  // Global semaphore — limits total concurrent /participants/ requests across all cards
+  // to avoid 429. Shared by all loadOverviewCard calls.
+  class Semaphore {
+    constructor(limit) { this._limit = limit; this._queue = []; this._active = 0; }
+    async acquire() {
+      if (this._active < this._limit) { this._active++; return; }
+      await new Promise(r => this._queue.push(r));
+      this._active++;
+    }
+    release() {
+      this._active--;
+      if (this._queue.length) this._queue.shift()();
+    }
+  }
+  let _overviewSem = null;
+
+  async function runOverview() {
+    let projectIds = [];
+    try {
+      const r = await fetch('/settings');
+      if (r.ok) projectIds = await r.json();
+    } catch(e) {}
+
+    if (!projectIds.length) {
+      // No saved settings at all — show blank state
+      showState('info', 'Сохранённых проектов нет. Введи Project ID и нажми «Найти»');
+      return;
+    }
+
+    showOverview();
+    const grid = document.getElementById('overviewGrid');
+    grid.innerHTML = '';
+
+    // Create card placeholders
+    for (const pid of projectIds) {
+      const card = document.createElement('div');
+      card.className = 'ov-card';
+      card.id = `ovc-${pid}`;
+      card.innerHTML = `
+        <div class="ov-card-top">
+          <div>
+            <div class="ov-project-id">PROJECT ${pid}</div>
+            <div class="ov-project-name" id="ovc-name-${pid}">Загрузка...</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div class="ov-spinner" id="ovc-spin-${pid}"></div>
+            <button class="ov-open-btn" onclick="openProjectFromOverview('${pid}')">Открыть →</button>
+            <button class="ov-delete-btn" title="Удалить сохранённый поиск" onclick="deleteProjectSave('${pid}', event)">✕</button>
+          </div>
+        </div>
+        <div class="ov-stats" id="ovc-stats-${pid}"></div>`;
+      grid.appendChild(card);
+    }
+
+    // Init shared semaphore (10 concurrent participant requests total)
+    _overviewSem = new Semaphore(10);
+
+    // Load all cards in parallel — semaphore prevents 429
+    await Promise.allSettled(projectIds.map(pid => loadOverviewCard(pid)));
+  }
+
+  async function loadOverviewCard(pid) {
+    try {
+      // Load project-specific settings
+      const settResp = await fetch(`/settings/${pid}`);
+      const sett = settResp.ok ? await settResp.json() : {};
+      const statuses = sett.statuses?.length
+        ? sett.statuses
+        : ['ACCEPTED','IN_PROGRESS','IN_REVIEWS','REGISTERED'];
+
+      // Apply campus filter from saved settings
+      const allowedCampusIds = buildAllowedCampusIds(sett);
+
+      // Load saved logins for comparison
+      const savedResp = await fetch(`/saved/${pid}`);
+      const savedLoginsForProject = savedResp.ok ? new Set(await savedResp.json()) : new Set();
+
+      // Fetch project/course name
+      let projInfo = null;
+      const projResp = await apiGet(`/v1/projects/${pid}`);
+      if (projResp.ok) {
+        projInfo = await projResp.json();
+      } else {
+        const courseResp = await apiGet(`/v1/courses/${pid}`);
+        if (courseResp.ok) projInfo = await courseResp.json();
+      }
+      const nameEl = document.getElementById(`ovc-name-${pid}`);
+      if (nameEl) nameEl.textContent = projInfo?.title || pid;
+
+      // Step 1: collect all logins for these statuses
+      const loginStatusMap = new Map();
+      for (const status of statuses) {
+        let offset = 0;
+        while (true) {
+          const r = await apiGet(`/v1/projects/${pid}/participants?status=${status}&limit=1000&offset=${offset}`);
+          if (!r.ok) break;
+          const d = await r.json();
+          (d.participants || []).forEach(p => { if (!loginStatusMap.has(p)) loginStatusMap.set(p, status); });
+          if ((d.participants || []).length < 1000) break;
+          offset += 1000;
+        }
+      }
+
+      // Step 2: filter by ACTIVE + campus — all logins in parallel, throttled by semaphore
+      const logins = [...loginStatusMap.keys()];
+      let activeCount = 0;
+      let newCount = 0;
+      const results = await Promise.allSettled(
+        logins.map(async login => {
+          await _overviewSem.acquire();
+          try {
+            const r = await apiGet(`/v1/participants/${login}`);
+            if (!r.ok) return null;
+            const info = await r.json();
+            if (info.status !== 'ACTIVE') return null;
+            if (allowedCampusIds !== null && !allowedCampusIds.has(info.campus?.id)) return null;
+            return login;
+          } finally {
+            _overviewSem.release();
+          }
+        })
+      );
+      for (const res of results) {
+        if (res.status === 'fulfilled' && res.value) {
+          activeCount++;
+          if (savedLoginsForProject.size > 0 && !savedLoginsForProject.has(res.value)) newCount++;
+        }
+      }
+
+      const spinEl = document.getElementById(`ovc-spin-${pid}`);
+      if (spinEl) spinEl.style.display = 'none';
+
+      const statsEl = document.getElementById(`ovc-stats-${pid}`);
+      if (statsEl) {
+        statsEl.innerHTML = `
+          <div class="ov-stat">
+            <div class="ov-stat-val accent">${activeCount}</div>
+            <div class="ov-stat-lbl">Участников</div>
+          </div>
+          ${savedLoginsForProject.size > 0 ? `
+          <div style="width:1px;height:30px;background:var(--border)"></div>
+          <div class="ov-stat">
+            <div class="ov-stat-val ${newCount > 0 ? 'green' : ''}" style="${newCount === 0 ? 'color:var(--muted)' : ''}">${newCount}</div>
+            <div class="ov-stat-lbl">Новых</div>
+          </div>
+          <div style="width:1px;height:30px;background:var(--border)"></div>
+          <div class="ov-stat">
+            <div class="ov-stat-val" style="color:var(--muted2)">${savedLoginsForProject.size}</div>
+            <div class="ov-stat-lbl">Сохранено</div>
+          </div>` : ''}`;
+      }
+
+      const card = document.getElementById(`ovc-${pid}`);
+      if (card && newCount > 0) card.classList.add('has-new');
+
+    } catch(e) {
+      document.getElementById(`ovc-spin-${pid}`)?.style && (document.getElementById(`ovc-spin-${pid}`).style.display = 'none');
+      const nameEl = document.getElementById(`ovc-name-${pid}`);
+      if (nameEl && nameEl.textContent === 'Загрузка...') nameEl.textContent = 'Ошибка загрузки';
+    }
+  }
+
+  // Build campus ID Set from saved settings (mirrors getSelectedCampusIds)
+  function buildAllowedCampusIds(sett) {
+    const group = sett.campusGroup || 'all';
+    if (group === 'all') return null;
+    if (group === 'main') return new Set(campusList.filter(c => c.isMain).map(c => c.id));
+    if (group === 'other') return new Set(campusList.filter(c => !c.isMain).map(c => c.id));
+    if (sett.customCampusIds?.length) return new Set(sett.customCampusIds);
+    return null;
+  }
+
+
+  async function openProjectFromOverview(pid) {
+    // Restore this project's settings into the UI
+    try {
+      const r = await fetch(`/settings/${pid}`);
+      if (r.ok) {
+        const s = await r.json();
+        if (s.statuses?.length) {
+          document.querySelectorAll('[data-status]').forEach(el => {
+            el.classList.toggle('checked', s.statuses.includes(el.dataset.status));
+          });
+        }
+        window._pendingCampusGroup = s.campusGroup || 'all';
+        window._pendingCustomIds   = s.customCampusIds || [];
+        window._restoringSettings  = true;
+          applyPendingCampusGroup();
+        updateActiveCampusesDisplay();
+      }
+    } catch(e) {}
+
+    document.getElementById('projectId').value = pid;
+    fetchProjectInfo(pid);
+    currentProjectId = pid;
+    runSearch();
+  }
+
+  // ── Overview navigation ─────────────────────────────
+  function backToOverview() {
+    showOverview();
+    document.getElementById('backToOverviewBtn').style.display = 'none';
+  }
+
+  async function deleteProjectSave(pid, event) {
+    event.stopPropagation();
+    if (!confirm(`Удалить сохранённый поиск для проекта ${pid}?`)) return;
+    try {
+      await fetch(`/saved/${pid}`, { method: 'DELETE' });
+      await fetch(`/settings/${pid}`, { method: 'DELETE' });
+    } catch(e) {}
+    // Remove card from DOM
+    const card = document.getElementById(`ovc-${pid}`);
+    if (card) card.remove();
+    // If no cards left — show empty state
+    const grid = document.getElementById('overviewGrid');
+    if (grid && !grid.children.length) {
+      showState('info', 'Сохранённых проектов нет. Введи Project ID и нажми «Найти»');
+    }
+  }
+
+  // ── Per-project file-based save (via local server) ──────
+  async function loadSavedForProject(projectId) {
+    if (!projectId) return;
+    try {
+      const resp = await fetch(`/saved/${projectId}`);
+      if (!resp.ok) return;
+      const logins = await resp.json();
+      savedLogins = new Set(logins);
+      if (savedLogins.size > 0)
+        showToast('info', `📂 Загружено ${savedLogins.size} сохранённых для проекта ${projectId}`);
+    } catch(e) {}
+  }
+
+  // ── Settings (per-project filters) ───────────────────
+  function collectSettings() {
+    return {
+      campusGroup: currentCampusGroup,
+      customCampusIds: currentCampusGroup === 'custom'
+        ? [...document.querySelectorAll('#campusSublist .cb-item.checked')].map(i => i.dataset.campusId)
+        : [],
+      statuses: [...document.querySelectorAll('[data-status].checked')].map(el => el.dataset.status),
+    };
+  }
+
+  async function saveSettings() {
+    if (!currentProjectId) return;
+    try {
+      await fetch(`/settings/${currentProjectId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(collectSettings())
+      });
+    } catch(e) {}
+  }
+
+  async function restoreSettings() {
+    // No longer used for startup — overview handles it per-project
+    return false;
+  }
+
+  function applyPendingCampusGroup() {
+    const group = window._pendingCampusGroup;
+    if (!group) return;
+    window._restoringSettings = true;
+    selectCampusGroup(group);
+    if (group === 'custom' && window._pendingCustomIds?.length) {
+      const ids = new Set(window._pendingCustomIds);
+      document.querySelectorAll('#campusSublist .cb-item').forEach(i => {
+        i.classList.toggle('checked', ids.has(i.dataset.campusId));
+      });
+      updateActiveCampusesDisplay();
+    }
+    window._pendingCampusGroup  = null;
+    window._pendingCustomIds    = null;
+    window._restoringSettings   = false;
+  }
+
+  // ── Auth ─────────────────────────────────────────────
+  async function doLogin() {
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    btn.textContent = '...';
+    try {
+      await getAccessToken();
+      await loadCampuses();
+    } catch(err) {
+      showToast('error', err.message);
+      btn.disabled = false;
+      btn.textContent = '→ ВОЙТИ';
+    }
+  }
+
+  function showAuthorized(username) {
+    // Hide login form, show status badge
+    document.getElementById('authForm').style.display = 'none';
+    document.getElementById('gated').style.display = 'flex';
+    document.getElementById('searchWrap').style.display = '';
+    const statusEl = document.getElementById('authStatus');
+    statusEl.style.display = 'flex';
+    document.getElementById('authStatusText').textContent = username || 'Авторизован';
+  }
+
+  async function getAccessToken(silent = false) {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+    if (!username || !password) {
+      if (silent) return;
+      throw new Error('Укажи логин и пароль');
+    }
+    const resp = await fetch(AUTH_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ grant_type:'password', client_id:'s21-open-api', username, password })
+    });
+    const data = await resp.json();
+    if (!data.access_token) throw new Error(data.error_description || 'Ошибка авторизации');
+    accessToken = data.access_token;
+    sessionStorage.setItem(TOKEN_KEY, accessToken);
+    // Note: showAuthorized is called by loadCampuses after it completes
+  }
+
+  // ── Campuses ─────────────────────────────────────────
+  async function loadCampuses() {
+    try {
+      if (!accessToken) await getAccessToken(true);
+      if (!accessToken) return;  // still no token (silent failed) — stay hidden
+      const resp = await apiGet('/v1/campuses');
+      if (!resp.ok) return;
+      const data = await resp.json();
+      campusList = (data.campuses || []).map(c => ({
+        id: c.id,
+        shortName: c.shortName,
+        isMain: MAIN_CAMPUSES.has(c.shortName)
+      }));
+      buildCampusSublist();
+      // Reveal gated UI now that we have a valid token and campus list
+      showAuthorized(document.getElementById('username').value.trim());
+
+      updateActiveCampusesDisplay();
+      const _initPid = document.getElementById('projectId').value.trim();
+      if (_initPid) fetchProjectInfo(_initPid);
+
+      // Show overview of all projects with saved settings
+      await runOverview();
+    } catch(e) { console.error(e); }
+  }
+
+  // Extract city abbreviation from "21 CityName" → "CITYNAME"
+  // Ignore names that don't match the pattern or are "Test"
+  function campusAbbr(shortName) {
+    const m = shortName.match(/^21\s+(.+)$/);
+    if (!m) return null;
+    const city = m[1].trim();
+    if (/test/i.test(city)) return null;
+    // Use first 3 chars uppercased as abbreviation, except known mappings
+    const MAP = {
+      'Moscow': 'MSK', 'Kazan': 'KZN', 'Novosibirsk': 'NSK',
+      'Yerevan': 'EVN', 'Astana': 'TSE', 'Almaty': 'ALA',
+      'Tashkent': 'TAS', 'Baku': 'BAK', 'Tbilisi': 'TBS',
+      'Minsk': 'MSQ', 'Bishkek': 'FRU', 'Samarkand': 'SKD',
+    };
+    return MAP[city] || city.slice(0, 3).toUpperCase();
+  }
+
+  function buildCampusSublist() {
+    const container = document.getElementById('campusSublist');
+    container.innerHTML = '';
+    [...campusList].sort((a, b) => a.shortName.localeCompare(b.shortName)).forEach(c => {
+      const div = document.createElement('div');
+      div.className = 'cb-item sub';
+      div.dataset.campusId = c.id;
+      div.dataset.isMain = c.isMain ? '1' : '0';
+      div.onclick = () => {
+        div.classList.toggle('checked');
+        // selectCampusGroup switches radio + calls runSearch if results exist,
+        // but since custom is already active after first click it won't re-fire.
+        // So we update state manually and call runSearch directly.
+        currentCampusGroup = 'custom';
+        ['all','main','other','custom'].forEach(g => {
+          const el = document.getElementById(`cg-${g}`);
+          if (el) el.classList.toggle('selected', g === 'custom');
+        });
+        updateActiveCampusesDisplay();
+        // Campus checkbox change does not auto-rerun search
+      };
+      div.innerHTML = `<div class="cb-box"><span class="cb-check">✓</span></div><span>${c.shortName}</span>`;
+      container.appendChild(div);
+    });
+
+    // Show 'custom' radio
+    const customBtn = document.getElementById('cg-custom');
+    if (customBtn) customBtn.style.display = '';
+
+
+  }
+
+  function selectCampusGroup(group) {
+    currentCampusGroup = group;
+    const sublist = document.getElementById('campusSublist');
+
+    // Radio: deselect all, select only the clicked one
+    ['all','main','other','custom'].forEach(g => {
+      const el = document.getElementById(`cg-${g}`);
+      if (el) el.classList.toggle('selected', g === group);
+    });
+
+    // Sublist (individual checkboxes) only visible in custom mode
+    sublist.classList.toggle('open', group === 'custom');
+
+    updateActiveCampusesDisplay();
+
+    // Campus change does not auto-rerun search — user presses the button
+  }
+
+  // Update the campus chips shown in the main header
+  function updateActiveCampusesDisplay() {
+    const wrap = document.getElementById('activeCampusesWrap');
+    if (!wrap) return;
+
+    if (currentCampusGroup === 'all') {
+      wrap.style.display = 'none';
+      return;
+    }
+
+    let filtered = [];
+    if (currentCampusGroup === 'main') {
+      filtered = campusList.filter(c => c.isMain);
+    } else if (currentCampusGroup === 'other') {
+      // Only real "21 <City>" campuses, exclude Test
+      filtered = campusList.filter(c => !c.isMain && /^21 /i.test(c.shortName) && !/test/i.test(c.shortName));
+    } else {
+      // custom — only the checked ones
+      const checkedIds = new Set(
+        [...document.querySelectorAll('#campusSublist .cb-item.checked')].map(i => i.dataset.campusId)
+      );
+      filtered = campusList.filter(c => checkedIds.has(c.id));
+    }
+
+    if (!filtered.length) { wrap.style.display = 'none'; return; }
+
+    wrap.style.display = 'flex';
+    wrap.innerHTML = filtered.map(c =>
+      `<span style="font-size:9px;padding:2px 7px;border-radius:3px;
+        background:rgba(124,108,255,0.1);border:1px solid rgba(124,108,255,0.25);
+        color:var(--muted2);letter-spacing:0.5px">${c.shortName}</span>`
+    ).join('');
+  }
+
+  // Returns Set of selected campus IDs, or null if "all campuses" selected
+  function getSelectedCampusIds() {
+    if (currentCampusGroup === 'all') return null;
+    if (currentCampusGroup === 'main') {
+      return new Set(campusList.filter(c => c.isMain).map(c => c.id));
+    }
+    if (currentCampusGroup === 'other') {
+      return new Set(campusList.filter(c => !c.isMain).map(c => c.id));
+    }
+    // custom — read checked checkboxes
+    const ids = [...document.querySelectorAll('#campusSublist .cb-item.checked')]
+      .map(i => i.dataset.campusId);
+    return ids.length ? new Set(ids) : null;
+  }
+
+  // ── Project dropdown (recently used) ────────────────
+  // Cache of pid -> title for dropdown display
+  const _projectTitleCache = {};
+
+  function showProjectDropdown() {
+    const dropdown = document.getElementById('projectDropdown');
+    // Collect all known project IDs from settings
+    fetch('/settings')
+      .then(r => r.ok ? r.json() : [])
+      .then(pids => {
+        if (!pids.length) { dropdown.style.display = 'none'; return; }
+        dropdown.innerHTML = pids.map(pid => `
+          <div class="proj-dropdown-item" onmousedown="selectProjectFromDropdown('${pid}')">
+            <div class="proj-dropdown-id">ID ${pid}</div>
+            <div class="proj-dropdown-name" id="pdd-name-${pid}">${_projectTitleCache[pid] || '...'}</div>
+          </div>`).join('');
+        dropdown.style.display = '';
+        // Load names for any not yet cached
+        pids.forEach(pid => {
+          if (!_projectTitleCache[pid]) {
+            Promise.all([
+              apiGet(`/v1/projects/${pid}`),
+            ]).then(([r]) => {
+              if (r.ok) r.json().then(p => {
+                _projectTitleCache[pid] = p.title || pid;
+                const el = document.getElementById(`pdd-name-${pid}`);
+                if (el) el.textContent = p.title || pid;
+              });
+              else apiGet(`/v1/courses/${pid}`).then(r2 => {
+                if (r2.ok) r2.json().then(p => {
+                  _projectTitleCache[pid] = p.title || pid;
+                  const el = document.getElementById(`pdd-name-${pid}`);
+                  if (el) el.textContent = p.title || pid;
+                });
+              });
+            });
+          }
+        });
+      })
+      .catch(() => { dropdown.style.display = 'none'; });
+  }
+
+  function selectProjectFromDropdown(pid) {
+    document.getElementById('projectId').value = pid;
+    document.getElementById('projectDropdown').style.display = 'none';
+    fetchProjectInfo(pid);
+  }
+
+  function hideProjectDropdown() {
+    document.getElementById('projectDropdown').style.display = 'none';
+  }
+
+  // ── Project info lookup ──────────────────────────────
+  let _projectLookupTimer = null;
+
+  function onProjectIdInput() {
+    clearTimeout(_projectLookupTimer);
+    const id = document.getElementById('projectId').value.trim();
+    hideProjectDropdown();
+    if (!id) { hideProjectCard(); return; }
+    _projectLookupTimer = setTimeout(() => fetchProjectInfo(id), 500);
+  }
+
+  async function fetchProjectInfo(id) {
+    if (!accessToken) return;
+    const card = document.getElementById('projectCard');
+    try {
+      // Try as project first, then as course
+      let p = null;
+      let kind = 'PROJECT';
+      const projResp = await apiGet(`/v1/projects/${id}`);
+      if (projResp.ok) {
+        p = await projResp.json();
+      } else {
+        const courseResp = await apiGet(`/v1/courses/${id}`);
+        if (courseResp.ok) {
+          p = await courseResp.json();
+          kind = 'COURSE';
+        }
+      }
+      if (!p) { hideProjectCard(); return; }
+
+      document.getElementById('pcTitle').textContent = p.title || '—';
+
+      // Chips: kind, xp, duration
+      const chips = [];
+      chips.push([kind, kind === 'COURSE' ? '#4fc3f7' : 'var(--accent)']);
+      if (p.xp != null)    chips.push([p.xp + ' XP', 'var(--green)']);
+      if (p.durationHours) chips.push([p.durationHours + 'h', 'var(--muted2)']);
+      document.getElementById('pcChips').innerHTML = chips.map(([label, color]) =>
+        `<span style="font-size:9px;padding:2px 7px;border-radius:3px;border:1px solid ${color}33;color:${color};letter-spacing:0.5px">${label}</span>`
+      ).join('');
+
+      // Description — trim long text
+      const desc = p.description || '';
+      document.getElementById('pcDesc').textContent = desc.length > 120 ? desc.slice(0, 120) + '…' : desc;
+      document.getElementById('pcDesc').style.display = desc ? '' : 'none';
+
+      card.style.display = 'flex';
+    } catch(e) {
+      hideProjectCard();
+    }
+  }
+
+  function hideProjectCard() {
+    document.getElementById('projectCard').style.display = 'none';
+  }
+
+  // ── Low-level API helper with auto-retry on 401/429 ─────
+  // Retries 429 up to 20 times with exponential backoff (capped at 30s)
+  async function apiGet(path, attempt = 0) {
+    const resp = await fetch(BASE_URL + path, { headers:{ 'X-Token': accessToken } });
+    if (resp.status === 401 && attempt === 0) {
+      await getAccessToken();
+      return apiGet(path, 1);
+    }
+    if (resp.status === 429 && attempt < 20) {
+      // Exponential backoff capped at 30s: 1s, 2s, 4s, 8s, 16s, 30s, 30s...
+      const delay = Math.min(1000 * Math.pow(2, attempt), 30000);
+      await new Promise(r => setTimeout(r, delay));
+      return apiGet(path, attempt + 1);
+    }
+    return resp;
+  }
+
+  // ── Search ────────────────────────────────────────────
+  async function runSearch() {
+    const statuses = [...document.querySelectorAll('[data-status].checked')].map(el => el.dataset.status);
+    if (!statuses.length) { showToast('error', 'Выбери хотя бы один статус'); return; }
+
+    currentProjectId = document.getElementById('projectId').value.trim();
+    if (!currentProjectId) { showToast('error', 'Укажи Project ID'); return; }
+
+    const btn = document.getElementById('searchBtn');
+    btn.disabled = true;
+    showLoading();
+    setProgress(0);
+    document.getElementById('progressWrap').classList.add('visible');
+
+    try {
+      if (!accessToken) await getAccessToken();
+
+      // Campus filter is applied CLIENT-SIDE after fetching participant info.
+      // null = all campuses; Set<id> = only these campus IDs.
+      const allowedCampusIds = getSelectedCampusIds();
+
+      // ── Step 1: collect all logins for each selected project status ──
+      // No campusId param — always fetch full list, filter locally.
+      // Cost: statuses.length × ceil(N/1000) requests.
+      const loginStatusMap = new Map();
+
+      for (const status of statuses) {
+        let offset = 0;
+        while (true) {
+          const url = `/v1/projects/${currentProjectId}/participants?status=${status}&limit=1000&offset=${offset}`;
+          const resp = await apiGet(url);
+          if (!resp.ok) break;
+          const data = await resp.json();
+          const participants = data.participants || [];
+          // First-seen status wins
+          participants.forEach(p => { if (!loginStatusMap.has(p)) loginStatusMap.set(p, status); });
+          if (participants.length < 1000) break;
+          offset += 1000;
+        }
+      }
+
+      const logins = [...loginStatusMap.keys()];
+      allStudents = [];
+      const total = logins.length;
+
+      // Load saved list for this project so NEW badges work during progressive render
+      await loadSavedForProject(currentProjectId);
+
+      if (total === 0) {
+        showState('empty', 'Участники не найдены');
+        btn.disabled = false;
+        btn.textContent = '▶ НАЙТИ УЧАСТНИКОВ';
+        document.getElementById('progressWrap').classList.remove('visible');
+        return;
+      }
+
+      // ── Step 2: fetch participant info — 1 request per person ──
+      // Filter: keep only ACTIVE participants whose campus matches selection.
+      let done = 0;
+      for (let i = 0; i < logins.length; i += BATCH) {
+        const batch = logins.slice(i, i + BATCH);
+        const results = await Promise.allSettled(
+          batch.map(login => fetchParticipantInfo(login, loginStatusMap.get(login), allowedCampusIds))
+        );
+        results.forEach(r => {
+          if (r.status === 'fulfilled' && r.value) allStudents.push(r.value);
+        });
+        done = Math.min(i + BATCH, total);
+        btn.textContent = `⟳ ${done}/${total}`;
+        setProgress(done / total * 100);
+
+        // Progressive render every 100 participants
+        if (done % 100 === 0 || done === total) renderTable(allStudents);
+      }
+
+      document.getElementById('statTotal').textContent = allStudents.length;
+      const newCount = allStudents.filter(s => !savedLogins.has(s.login)).length;
+      document.getElementById('statNew').textContent = savedLogins.size > 0 ? newCount : '—';
+
+      renderTable(allStudents);
+      document.getElementById('saveBtn').disabled = false;
+      document.getElementById('csvBtn').disabled = false;
+      showToast('success', `✓ Найдено ${allStudents.length} активных участников`);
+      if (!window._searchFromOverview) saveSettings();
+  
+    } catch(err) {
+      showState('error', '⚠ ' + err.message);
+      showToast('error', err.message);
+    }
+
+    btn.disabled = false;
+    btn.textContent = '▶ НАЙТИ УЧАСТНИКОВ';
+    document.getElementById('progressWrap').classList.remove('visible');
+  }
+
+  // Fetch basic participant info — 1 request per person.
+  // Returns null if participant is excluded: not ACTIVE, or campus not in allowedCampusIds.
+  async function fetchParticipantInfo(login, projectStatus, allowedCampusIds) {
+    try {
+      const resp = await apiGet(`/v1/participants/${login}`);
+      if (!resp.ok) return null;
+      const info = await resp.json();
+
+      // Filter 1: must be ACTIVE
+      if (info.status !== 'ACTIVE') return null;
+
+      // Filter 2: campus must be in the selected set (null = all campuses allowed)
+      if (allowedCampusIds !== null && !allowedCampusIds.has(info.campus?.id)) return null;
+
+      return {
+        login,
+        level:             info.level ?? '—',
+        campus:            info.campus?.shortName ?? '—',
+        participantStatus: info.status,
+        expValue:          info.expValue ?? '—',
+        projectStatus:     projectStatus ?? '—',
+        // Loaded lazily on row click:
+        finalPercentage:   null,
+        completionDate:    null,
+        detailLoaded:      false,
+      };
+    } catch(e) {
+      return null;
+    }
+  }
+
+  // Lazy-load project detail on row click
+  async function loadDetail(login) {
+    if (!currentProjectId) return;
+    const idx = allStudents.findIndex(s => s.login === login);
+    if (idx === -1) return;
+
+    document.getElementById('detailLogin').textContent = login;
+    document.getElementById('detailBody').innerHTML = `<div class="detail-spinner"><div class="spinner"></div></div>`;
+    document.getElementById('detailPanel').classList.add('open');
+
+    const s = allStudents[idx];
+    if (!s.detailLoaded) {
+      try {
+        const resp = await apiGet(`/v1/participants/${login}/projects/${currentProjectId}`);
+        if (resp.ok) {
+          const proj = await resp.json();
+          s.finalPercentage = proj?.finalPercentage ?? null;
+          s.completionDate  = proj?.completionDateTime
+            ? new Date(proj.completionDateTime).toLocaleDateString('ru-RU') : null;
+          s.detailLoaded = true;
+          // Update row in table if visible
+          const rowEl = document.querySelector(`[data-login="${login}"]`);
+          if (rowEl) updateRowProjectCell(rowEl, s);
+        }
+      } catch(e) { /* ignore */ }
+    }
+
+    renderDetailPanel(s);
+  }
+
+  function renderDetailPanel(s) {
+    const rows = [
+      ['Логин',              s.login],
+      ['Кампус',             s.campus],
+      ['Уровень',            s.level],
+      ['XP',                 typeof s.expValue === 'number' ? s.expValue.toLocaleString() : s.expValue],
+      ['Статус участника',   s.participantStatus],
+      ['Статус проекта',     s.projectStatus],
+      ['Выполнение',         s.finalPercentage != null ? s.finalPercentage + '%' : '—'],
+      ['Дата завершения',    s.completionDate ?? '—'],
+    ];
+    document.getElementById('detailBody').innerHTML = `
+      <div>
+        <div class="detail-section-title">// данные участника</div>
+        ${rows.map(([k,v]) => `
+          <div class="detail-row">
+            <span class="detail-key">${k}</span>
+            <span class="detail-val">${v}</span>
+          </div>`).join('')}
+      </div>
+      <a href="https://edu.21-school.ru/profile/${s.login}" target="_blank"
+         style="display:block;text-align:center;padding:10px;border:1px solid var(--border2);border-radius:8px;
+                color:var(--muted2);font-size:11px;text-decoration:none;transition:all 0.15s;"
+         onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--muted2)'">
+        ↗ Открыть профиль
+      </a>`;
+  }
+
+  function closeDetail() {
+    document.getElementById('detailPanel').classList.remove('open');
+  }
+
+  function updateRowProjectCell(rowEl, s) {
+    const cell = rowEl.querySelector('.proj-cell');
+    if (!cell) return;
+    const pct  = s.finalPercentage != null ? ` <span style="color:var(--muted2);font-size:10px">${s.finalPercentage}%</span>` : '';
+    const date = s.completionDate ? `<div style="font-size:9px;color:var(--muted);margin-top:2px">${s.completionDate}</div>` : '';
+    cell.innerHTML = `<span class="chip chip-${s.projectStatus}">${s.projectStatus}</span>${pct}${date}`;
+  }
+
+  // ── Table rendering ────────────────────────────────────
+  const COL_KEYS = ['login','campus','level','xp','projectStatus','participantStatus'];
+
+  function renderTable(students) {
+    const q = document.getElementById('searchFilter').value.toLowerCase();
+    filteredList = q ? students.filter(s => s.login.toLowerCase().includes(q)) : students.slice();
+
+    // Apply sort
+    if (sortCol) {
+      filteredList.sort((a, b) => {
+        let av = getSortVal(a, sortCol);
+        let bv = getSortVal(b, sortCol);
+        if (av < bv) return sortDir === 'asc' ? -1 : 1;
+        if (av > bv) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    if (!filteredList.length) { showState('empty', 'Участники не найдены'); return; }
+
+    // Build header with sort indicators
+    const headHtml = COL_KEYS.map((k, i) => {
+      const labels = ['ЛОГИН','КАМПУС','LVL','XP','СТАТУС ПРОЕКТА','СТАТУС'];
+      const cls = sortCol === k ? (sortDir === 'asc' ? 'sort-asc' : 'sort-desc') : '';
+      return `<div class="${cls}" onclick="sortBy('${k}')">${labels[i]}</div>`;
+    }).join('');
+
+    // Render rows HTML — skip animation on large lists for perf
+    const useAnim = filteredList.length <= 200;
+    const rowsHtml = filteredList.map(s => buildRowHtml(s, useAnim)).join('');
+
+    showTable();
+    document.getElementById('tableWrap').innerHTML = `
+      <div class="table-head">${headHtml}</div>
+      <div id="rowsContainer">${rowsHtml}</div>`;
+  }
+
+  function buildRowHtml(s, animate = false) {
+    const isNew = savedLogins.size > 0 && !savedLogins.has(s.login);
+    const pct   = s.finalPercentage != null ? ` <span style="color:var(--muted2);font-size:10px">${s.finalPercentage}%</span>` : '';
+    const date  = s.completionDate ? `<div style="font-size:9px;color:var(--muted);margin-top:2px">${s.completionDate}</div>` : '';
+    const anim  = animate ? 'style="animation:rowIn 0.2s ease"' : '';
+    return `
+      <div class="student-row ${isNew ? 'is-new' : ''}" data-login="${s.login}"
+           onclick="loadDetail('${s.login}')" style="cursor:pointer;${animate?'animation:rowIn 0.2s ease':''}" ${anim}>
+        <div class="student-login">${isNew ? '<span class="new-badge">NEW</span>' : ''}${s.login}</div>
+        <div class="cell">${s.campus}</div>
+        <div class="cell"><span class="level-badge">${s.level}</span></div>
+        <div class="cell">${typeof s.expValue === 'number' ? s.expValue.toLocaleString() : s.expValue}</div>
+        <div class="cell proj-cell"><span class="chip chip-${s.projectStatus}">${s.projectStatus}</span>${pct}${date}</div>
+        <div class="cell"><span class="pdot pdot-${s.participantStatus}"></span>${s.participantStatus}</div>
+      </div>`;
+  }
+
+  function getSortVal(s, col) {
+    switch(col) {
+      case 'login':             return s.login.toLowerCase();
+      case 'campus':            return s.campus.toLowerCase();
+      case 'level':             return typeof s.level === 'number' ? s.level : -1;
+      case 'xp':                return typeof s.expValue === 'number' ? s.expValue : -1;
+      case 'projectStatus':     return s.projectStatus;
+      case 'participantStatus': return s.participantStatus;
+      default: return '';
+    }
+  }
+
+  function sortBy(col) {
+    if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    else { sortCol = col; sortDir = 'asc'; }
+    renderTable(allStudents);
+  }
+
+  function filterTable() { if (allStudents.length) renderTable(allStudents); }
+
+  // ── Save ──────────────────────────────────────────────
+  async function saveList() {
+    if (!currentProjectId) return;
+    const logins = allStudents.map(s => s.login);
+    try {
+      const resp = await fetch(`/saved/${currentProjectId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(logins)
+      });
+      if (!resp.ok) throw new Error('Ошибка сохранения');
+      savedLogins = new Set(logins);
+      document.getElementById('statNew').textContent = '—';
+      renderTable(allStudents);
+      showToast('success', `✓ Сохранено ${logins.length} участников (проект ${currentProjectId})`);
+    } catch(e) {
+      showToast('error', e.message);
+    }
+  }
+
+  async function clearSaved() {
+    if (!currentProjectId) return;
+    try {
+      await fetch(`/saved/${currentProjectId}`, { method: 'DELETE' });
+    } catch(e) {}
+    savedLogins.clear();
+    document.getElementById('statNew').textContent = '—';
+    if (allStudents.length) renderTable(allStudents);
+    showToast('info', `Сохранённый список проекта ${currentProjectId} очищен`);
+  }
+
+  // ── CSV Export ────────────────────────────────────────
+  function exportCsv() {
+    if (!allStudents.length) return;
+    const header = 'login,campus,level,xp,projectStatus,participantStatus,finalPercentage,completionDate';
+    const rows = allStudents.map(s => [
+      s.login, s.campus, s.level, s.expValue,
+      s.projectStatus, s.participantStatus,
+      s.finalPercentage ?? '', s.completionDate ?? ''
+    ].join(','));
+    const csv = [header, ...rows].join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type:'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `s21_project_${currentProjectId}_${Date.now()}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    showToast('success', '✓ CSV скачан');
+  }
+
+  // ── UI helpers ────────────────────────────────────────
+  function setProgress(pct) {
+    document.getElementById('progressBar').style.width = pct + '%';
+  }
+
+  function showOverview() {
+    document.getElementById('overviewWrap').style.display = '';
+    document.getElementById('tableWrap').style.display = 'none';
+  }
+  function showTable() {
+    document.getElementById('overviewWrap').style.display = 'none';
+    document.getElementById('tableWrap').style.display = '';
+    const btn = document.getElementById('backToOverviewBtn');
+    if (btn) btn.style.display = '';
+  }
+  function showLoading() {
+    showTable();
+    document.getElementById('tableWrap').innerHTML = `
+      <div class="state-box">
+        <div class="spinner"></div>
+        <div class="state-text" id="loadingText">Загружаю данные...</div>
+      </div>`;
+  }
+  function showState(type, msg) {
+    showTable();
+    const icons = { error:'⚠', empty:'◎', info:'◈' };
+    document.getElementById('tableWrap').innerHTML = `
+      <div class="state-box">
+        <div class="state-icon">${icons[type]||'◎'}</div>
+        <div class="state-text">${msg}</div>
+      </div>`;
+  }
+
+  let toastTimer;
+  function showToast(type, msg) {
+    const t = document.getElementById('toast');
+    document.getElementById('toastIcon').textContent = type==='success'?'✓':type==='error'?'✕':'ℹ';
+    document.getElementById('toastMsg').textContent = msg;
+    t.className = `toast ${type} show`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  // Close detail panel on Escape
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+
+  // Row animation keyframe (injected once)
+  const style = document.createElement('style');
+  style.textContent = '@keyframes rowIn { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:translateX(0)} }';
+  document.head.appendChild(style);
+</script>
+</body>
+</html>

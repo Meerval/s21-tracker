@@ -1,0 +1,67 @@
+{
+  "info": {
+    "_postman_id": "69026984-7be3-4100-96d2-41a0e242d8a3",
+    "name": "School21 API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "auth",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.access_token) {",
+                  "    pm.collectionVariables.set('access_token', json.access_token);",
+                  "    console.log('access_token обновлён');",
+                  "}",
+                  "if (json.refresh_token) {",
+                  "    pm.collectionVariables.set('refresh_token', json.refresh_token);",
+                  "    console.log('refresh_token обновлён');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "password" },
+                { "key": "client_id", "value": "s21-open-api" },
+                { "key": "username", "value": "{{username}}" },
+                { "key": "password", "value": "{{password}}" }
+              ]
+            },
+            "url": {
+              "raw": "{{authUrl}}",
+              "host": ["{{authUrl}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "https://platform.21-school.ru/services/21-school/api" },
+    { "key": "authUrl", "value": "https://auth.21-school.ru/auth/realms/EduPowerKeycloak/protocol/openid-connect/token" },
+    { "key": "username", "value": "%USERNAME%" },
+    { "key": "password", "value": "%PASSWORD%" },
+    { "key": "access_token", "value": "" },
+    { "key": "refresh_token", "value": "" }
+  ]
+}

@@ -1,0 +1,14 @@
+C:\Users\Diena\School21\cs21\cs21\bin\Debug\net10.0\cs21.exe
+C:\Users\Diena\School21\cs21\cs21\bin\Debug\net10.0\cs21.deps.json
+C:\Users\Diena\School21\cs21\cs21\bin\Debug\net10.0\cs21.runtimeconfig.json
+C:\Users\Diena\School21\cs21\cs21\bin\Debug\net10.0\cs21.dll
+C:\Users\Diena\School21\cs21\cs21\bin\Debug\net10.0\cs21.pdb
+C:\Users\Diena\School21\cs21\cs21\obj\Debug\net10.0\cs21.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Diena\School21\cs21\cs21\obj\Debug\net10.0\cs21.AssemblyInfoInputs.cache
+C:\Users\Diena\School21\cs21\cs21\obj\Debug\net10.0\cs21.AssemblyInfo.cs
+C:\Users\Diena\School21\cs21\cs21\obj\Debug\net10.0\cs21.csproj.CoreCompileInputs.cache
+C:\Users\Diena\School21\cs21\cs21\obj\Debug\net10.0\cs21.dll
+C:\Users\Diena\School21\cs21\cs21\obj\Debug\net10.0\refint\cs21.dll
+C:\Users\Diena\School21\cs21\cs21\obj\Debug\net10.0\cs21.pdb
+C:\Users\Diena\School21\cs21\cs21\obj\Debug\net10.0\cs21.genruntimeconfig.cache
+C:\Users\Diena\School21\cs21\cs21\obj\Debug\net10.0\ref\cs21.dll

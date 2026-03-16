@@ -1,0 +1,17 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        { "header": "origin", "operation": "set", "value": "https://platform.21-school.ru" },
+        { "header": "referer", "operation": "set", "value": "https://platform.21-school.ru/" }
+      ]
+    },
+    "condition": {
+      "urlFilter": "https://auth.21-school.ru/*",
+      "resourceTypes": ["xmlhttprequest", "main_frame", "sub_frame"]
+    }
+  }
+]

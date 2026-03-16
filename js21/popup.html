@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>S21 Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Unbounded:wght@300;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #060608; --surface: #0d0d12; --card: #0f0f16;
+      --border: #1a1a28; --border2: #252535;
+      --accent: #7c6cff; --accent-glow: rgba(124,108,255,0.25);
+      --green: #00d68f; --green-glow: rgba(0,214,143,0.2);
+      --red: #ff4567; --yellow: #ffb547;
+      --text: #e2e2f0; --muted: #4a4a6a; --muted2: #6a6a8a;
+      --new-bg: rgba(0,214,143,0.06); --new-border: rgba(0,214,143,0.25);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { width:800px; height:600px; overflow:hidden; }
+    body { background:var(--bg); color:var(--text); font-family:'JetBrains Mono',monospace; display:flex; }
+
+    /* Layout */
+    .layout { display:grid; grid-template-columns:260px 1fr; width:100%; height:600px; overflow:hidden; }
+
+    /* Sidebar */
+    .sidebar {
+      background:var(--surface); border-right:1px solid var(--border);
+      padding:20px 16px; display:flex; flex-direction:column; gap:16px;
+      overflow-y:auto; height:600px;
+    }
+    .logo { font-family:'Unbounded',sans-serif; font-weight:900; font-size:16px; letter-spacing:-1px; }
+    .logo .s { color:var(--accent); }
+    .logo .sub { font-size:8px; font-weight:300; letter-spacing:3px; color:var(--muted2); margin-top:3px; font-family:'JetBrains Mono',monospace; }
+    .divider { height:1px; background:var(--border); flex-shrink:0; }
+    .block-title { font-size:8px; letter-spacing:2.5px; text-transform:uppercase; color:var(--muted); margin-bottom:10px; font-weight:600; }
+
+    /* Inputs */
+    .field-label { display:block; font-size:10px; color:var(--muted2); margin-bottom:5px; }
+    input[type="text"], input[type="password"] {
+      width:100%; background:var(--bg); border:1px solid var(--border); border-radius:6px;
+      padding:8px 10px; color:var(--text); font-family:'JetBrains Mono',monospace;
+      font-size:11px; outline:none; transition:border-color 0.15s; margin-bottom:10px;
+    }
+    input:focus { border-color:var(--accent); }
+    input::placeholder { color:var(--muted); }
+    .proj-wrap { position:relative; margin-bottom:8px; }
+    .proj-wrap input { margin-bottom:0; }
+    .proj-dropdown {
+      position:absolute; top:calc(100% + 3px); left:0; right:0; z-index:100;
+      background:var(--surface); border:1px solid var(--border2); border-radius:6px;
+      overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,0.4);
+    }
+    .proj-dropdown-item { padding:8px 10px; cursor:pointer; transition:background 0.1s; border-bottom:1px solid var(--border); }
+    .proj-dropdown-item:last-child { border-bottom:none; }
+    .proj-dropdown-item:hover { background:rgba(124,108,255,0.08); }
+    .pdd-id { font-size:8px; color:var(--muted); letter-spacing:1px; }
+    .pdd-name { font-size:10px; color:var(--text); font-weight:600; }
+
+    /* Project card */
+    #projectCard {
+      display:none; background:var(--bg); border:1px solid var(--border); border-radius:6px;
+      padding:8px 10px; flex-direction:column; gap:5px; margin-bottom:2px;
+    }
+    #pcTitle { font-size:11px; font-weight:700; color:var(--text); line-height:1.3; }
+    #pcChips { display:flex; gap:4px; flex-wrap:wrap; }
+    #pcDesc { font-size:9px; color:var(--muted2); line-height:1.4; }
+
+    /* Checkboxes */
+    .cb-group { display:flex; flex-direction:column; gap:4px; }
+    .cb-item {
+      display:flex; align-items:center; gap:8px; cursor:pointer;
+      padding:5px 8px; border-radius:5px; border:1px solid transparent;
+      transition:all 0.15s; font-size:10px; user-select:none;
+    }
+    .cb-item:hover { background:rgba(124,108,255,0.05); border-color:var(--border); }
+    .cb-item.checked { background:rgba(124,108,255,0.08); border-color:rgba(124,108,255,0.3); }
+    .cb-box { width:14px; height:14px; border:1px solid var(--border2); border-radius:3px; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.15s; }
+    .cb-item.checked .cb-box { background:var(--accent); border-color:var(--accent); }
+    .cb-check { color:#fff; font-size:9px; display:none; }
+    .cb-item.checked .cb-check { display:block; }
+    .sdot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+    .sdot-accepted{background:var(--green)} .sdot-progress{background:var(--accent)}
+    .sdot-reviews{background:var(--yellow)} .sdot-registered{background:#4fc3f7}
+    .sdot-assigned{background:var(--muted2)} .sdot-failed{background:var(--red)}
+
+    /* Radio */
+    .rb-group { display:flex; flex-direction:column; gap:4px; }
+    .rb-item {
+      display:flex; align-items:center; gap:8px; cursor:pointer;
+      padding:5px 8px; border-radius:5px; border:1px solid transparent;
+      transition:all 0.15s; font-size:10px; user-select:none;
+    }
+    .rb-item:hover { background:rgba(124,108,255,0.05); border-color:var(--border); }
+    .rb-item.selected { background:rgba(124,108,255,0.08); border-color:rgba(124,108,255,0.3); }
+    .rb-circle { width:14px; height:14px; border:1px solid var(--border2); border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.15s; }
+    .rb-item.selected .rb-circle { border-color:var(--accent); }
+    .rb-dot { width:7px; height:7px; border-radius:50%; background:var(--accent); display:none; }
+    .rb-item.selected .rb-dot { display:block; }
+    .campus-sublist { display:none; flex-direction:column; gap:3px; padding-left:12px; margin-top:2px; }
+    .campus-sublist.open { display:flex; }
+    .cb-item.sub { padding:4px 8px; font-size:9px; }
+
+    /* Buttons */
+    .btn {
+      display:flex; align-items:center; justify-content:center; gap:6px;
+      width:100%; padding:9px; border-radius:6px; border:none;
+      font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:600;
+      cursor:pointer; transition:all 0.2s; letter-spacing:0.5px;
+    }
+    .btn-run { background:var(--accent); color:#fff; box-shadow:0 0 16px var(--accent-glow); }
+    .btn-run:hover { background:#9080ff; transform:translateY(-1px); }
+    .btn-run:disabled { opacity:0.4; cursor:not-allowed; transform:none; box-shadow:none; }
+    .btn-save { background:transparent; color:var(--green); border:1px solid rgba(0,214,143,0.3); }
+    .btn-save:hover { background:var(--green-glow); }
+    .btn-save:disabled { opacity:0.3; cursor:not-allowed; }
+    .btn-csv { background:transparent; color:#4fc3f7; border:1px solid rgba(79,195,247,0.3); font-size:10px; padding:7px; }
+    .btn-csv:hover { background:rgba(79,195,247,0.08); }
+    .btn-csv:disabled { opacity:0.3; cursor:not-allowed; }
+    .btn-html { background:transparent; color:var(--yellow); border:1px solid rgba(255,181,71,0.3); font-size:10px; padding:7px; }
+    .btn-html:hover { background:rgba(255,181,71,0.08); }
+    .btn-html:disabled { opacity:0.3; cursor:not-allowed; }
+    .btn-outline { background:transparent; color:var(--muted2); border:1px solid var(--border2); font-size:10px; padding:7px; }
+    .btn-outline:hover { color:var(--text); }
+    .progress-bar-wrap { display:none; height:3px; background:var(--border); border-radius:2px; overflow:hidden; }
+    .progress-bar-wrap.visible { display:block; }
+    .progress-bar { height:100%; background:var(--accent); transition:width 0.3s; width:0%; box-shadow:0 0 6px var(--accent-glow); }
+
+    /* Stats */
+    .stat-row { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+    .stat-mini { background:var(--bg); border:1px solid var(--border); border-radius:6px; padding:10px; text-align:center; }
+    .stat-val { font-family:'Unbounded',sans-serif; font-size:18px; font-weight:700; color:var(--accent); line-height:1; }
+    .stat-val.green { color:var(--green); }
+    .stat-lbl { font-size:8px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-top:3px; }
+
+    /* Auth status */
+    #authStatus { display:none; font-size:11px; color:var(--text); font-weight:600; padding:2px 0; }
+
+    /* Main */
+    .main { padding:20px; display:flex; flex-direction:column; gap:0; height:600px; overflow:hidden; }
+    .main-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:8px; }
+    .main-title { font-family:'Unbounded',sans-serif; font-size:11px; font-weight:500; color:var(--muted2); letter-spacing:1px; }
+    #activeCampusesWrap { display:none; flex-wrap:wrap; gap:3px; margin-top:4px; }
+    .search-input {
+      background:var(--surface); border:1px solid var(--border); border-radius:5px;
+      padding:7px 10px; color:var(--text); font-family:'JetBrains Mono',monospace;
+      font-size:11px; outline:none; width:180px; transition:border-color 0.15s;
+    }
+    .search-input:focus { border-color:var(--accent); }
+    .search-input::placeholder { color:var(--muted); }
+
+    /* Table */
+    .table-wrap { background:var(--card); border:1px solid var(--border); border-radius:10px; overflow-y:auto; flex:1; min-height:0; }
+    .table-head {
+      display:grid; grid-template-columns:2fr 1.2fr 0.6fr 0.9fr 1.2fr 1.1fr;
+      padding:10px 16px; background:var(--surface); border-bottom:1px solid var(--border);
+      font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted);
+    }
+    .table-head > div { cursor:pointer; display:flex; align-items:center; gap:3px; user-select:none; transition:color 0.15s; }
+    .table-head > div:hover { color:var(--muted2); }
+    .table-head > div.sort-asc::after  { content:'↑'; color:var(--accent); }
+    .table-head > div.sort-desc::after { content:'↓'; color:var(--accent); }
+    .student-row {
+      display:grid; grid-template-columns:2fr 1.2fr 0.6fr 0.9fr 1.2fr 1.1fr;
+      padding:10px 16px; border-bottom:1px solid var(--border);
+      align-items:center; transition:background 0.15s; position:relative; cursor:pointer;
+    }
+    .student-row:last-child { border-bottom:none; }
+    .student-row:hover { background:rgba(124,108,255,0.04); }
+    .student-row.is-new { background:var(--new-bg); border-bottom-color:var(--new-border); }
+    .student-row.is-new::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--green); }
+    .student-login { font-weight:600; font-size:12px; display:flex; align-items:center; gap:6px; }
+    .new-badge { background:var(--green); color:#000; font-size:7px; font-weight:700; letter-spacing:1px; padding:2px 5px; border-radius:3px; }
+    .cell { font-size:10px; color:var(--muted2); }
+    .level-badge { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:rgba(124,108,255,0.15); border:1px solid rgba(124,108,255,0.3); color:var(--accent); font-size:10px; font-weight:700; }
+    .chip { display:inline-block; padding:2px 6px; border-radius:3px; font-size:8px; font-weight:600; letter-spacing:0.5px; text-transform:uppercase; }
+    .chip-ACCEPTED{background:rgba(0,214,143,0.12);color:var(--green)}
+    .chip-IN_PROGRESS{background:rgba(124,108,255,0.12);color:var(--accent)}
+    .chip-IN_REVIEWS{background:rgba(255,181,71,0.12);color:var(--yellow)}
+    .chip-REGISTERED{background:rgba(79,195,247,0.12);color:#4fc3f7}
+    .chip-ASSIGNED{background:rgba(106,106,138,0.12);color:var(--muted2)}
+    .chip-FAILED{background:rgba(255,69,103,0.12);color:var(--red)}
+    .pdot { width:5px; height:5px; border-radius:50%; display:inline-block; margin-right:3px; }
+    .pdot-ACTIVE{background:var(--green)} .pdot-FROZEN{background:#4fc3f7}
+    .pdot-EXPELLED,.pdot-BLOCKED{background:var(--red)}
+    .pdot-TEMPORARY_BLOCKING{background:var(--yellow)}
+    .pdot-STUDY_COMPLETED{background:var(--muted2)}
+
+    /* Overview */
+    .overview-grid { display:flex; flex-direction:column; gap:8px; }
+    .ov-card { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:12px 14px; cursor:pointer; transition:all 0.15s; position:relative; overflow:hidden; }
+    .ov-card:hover { border-color:var(--border2); background:rgba(124,108,255,0.04); }
+    .ov-card.has-new { border-color:var(--new-border); background:var(--new-bg); }
+    .ov-card.has-new::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--green); }
+    .ov-card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px; }
+    .ov-project-id { font-size:8px; color:var(--muted); letter-spacing:1px; }
+    .ov-project-name { font-size:12px; font-weight:700; color:var(--text); line-height:1.3; }
+    .ov-stats { display:flex; gap:10px; align-items:center; }
+    .ov-stat { display:flex; flex-direction:column; align-items:center; }
+    .ov-stat-val { font-family:'Unbounded',sans-serif; font-size:16px; font-weight:700; line-height:1; }
+    .ov-stat-val.accent { color:var(--accent); } .ov-stat-val.green { color:var(--green); }
+    .ov-stat-lbl { font-size:7px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-top:2px; }
+    .ov-spinner { width:12px; height:12px; border:2px solid var(--border2); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; flex-shrink:0; }
+    .ov-open-btn { font-size:8px; padding:3px 7px; border-radius:3px; border:1px solid var(--border2); color:var(--muted2); background:none; cursor:pointer; transition:all 0.15s; white-space:nowrap; font-family:'JetBrains Mono',monospace; }
+    .ov-open-btn:hover { color:var(--text); border-color:var(--accent); }
+    .ov-delete-btn { background:none; border:none; color:var(--muted); font-size:12px; cursor:pointer; padding:3px 5px; border-radius:3px; line-height:1; transition:all 0.15s; flex-shrink:0; }
+    .ov-delete-btn:hover { color:var(--red); background:rgba(255,69,103,0.1); }
+
+    /* States */
+    .state-box { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 30px; color:var(--muted); gap:12px; }
+    .state-icon { font-size:28px; opacity:0.4; }
+    .state-text { font-size:11px; text-align:center; }
+    .spinner { width:28px; height:28px; border:2px solid var(--border2); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    @keyframes rowIn { from{opacity:0;transform:translateX(-4px)} to{opacity:1;transform:translateX(0)} }
+
+    /* Toast */
+    .toast { position:fixed; bottom:16px; right:16px; background:var(--surface); border:1px solid var(--border2); border-radius:8px; padding:10px 16px; font-size:11px; z-index:10000; display:flex; align-items:center; gap:8px; transform:translateY(60px); opacity:0; transition:all 0.3s; max-width:280px; }
+    .toast.show { transform:translateY(0); opacity:1; }
+    .toast.success { border-color:rgba(0,214,143,0.4); }
+    .toast.error   { border-color:rgba(255,69,103,0.4); }
+
+    /* Detail panel */
+    .detail-panel { position:fixed; right:0; top:0; bottom:0; width:280px; background:var(--surface); border-left:1px solid var(--border); z-index:1000; transform:translateX(100%); transition:transform 0.25s; display:flex; flex-direction:column; }
+    .detail-panel.open { transform:translateX(0); }
+    .detail-header { padding:16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+    .detail-login { font-weight:700; font-size:13px; }
+    .detail-close { background:none; border:none; color:var(--muted2); font-size:16px; cursor:pointer; padding:3px 6px; border-radius:3px; }
+    .detail-body { padding:16px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:12px; }
+    .detail-section-title { font-size:8px; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+    .detail-row { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid var(--border); font-size:10px; }
+    .detail-row:last-child { border-bottom:none; }
+    .detail-key { color:var(--muted2); } .detail-val { color:var(--text); font-weight:600; }
+
+    #overviewWrap { overflow-y:auto; flex:1; min-height:0; }
+    #tableWrap { }
+    #searchWrap { }
+    #backToOverviewBtn { }
+    #gated { flex-direction:column; gap:16px; }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div>
+      <div class="logo"><span class="s">S21</span> TRACKER<div class="sub">PARTICIPANT MONITOR</div></div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- Auth -->
+    <div id="authForm">
+      <div class="block-title">// авторизация</div>
+      <label class="field-label">ЛОГИН</label>
+      <input type="text" id="username" placeholder="твой-логин" />
+      <label class="field-label">ПАРОЛЬ</label>
+      <input type="password" id="password" placeholder="••••••••" />
+      <button class="btn btn-run" id="loginBtn" style="margin-top:2px">→ ВОЙТИ</button>
+    </div>
+    <div id="authStatus" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+      <span id="authStatusText" style="font-size:11px;font-weight:600;color:var(--text)"></span>
+      <button id="logoutBtn" style="background:none;border:1px solid var(--border2);border-radius:4px;color:var(--muted2);font-size:9px;padding:3px 7px;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all 0.15s">↩ ВЫЙТИ</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Gated -->
+    <div id="gated" style="display:none">
+      <!-- Project -->
+      <div>
+        <div class="block-title">// проект</div>
+        <label class="field-label">PROJECT ID</label>
+        <div class="proj-wrap">
+          <input type="text" id="projectId" placeholder="введи ID проекта" />
+          <div id="projectDropdown" class="proj-dropdown" style="display:none"></div>
+        </div>
+        <div id="projectCard">
+          <div id="pcTitle"></div>
+          <div id="pcChips"></div>
+          <div id="pcDesc"></div>
+        </div>
+      </div>
+      <div class="divider"></div>
+
+      <!-- Campuses -->
+      <div>
+        <div class="block-title">// кампусы</div>
+        <div class="rb-group">
+          <div class="rb-item selected" id="cg-all"><div class="rb-circle"><div class="rb-dot"></div></div><span>ВСЕ КАМПУСЫ</span></div>
+          <div class="rb-item" id="cg-main"><div class="rb-circle"><div class="rb-dot"></div></div><span>MSK / KZN / NSK</span></div>
+          <div class="rb-item" id="cg-other"><div class="rb-circle"><div class="rb-dot"></div></div><span>!(MSK / KZN / NSK)</span></div>
+          <div class="rb-item" id="cg-custom" style="display:none"><div class="rb-circle"><div class="rb-dot"></div></div><span>ВЫБРАТЬ ВРУЧНУЮ</span></div>
+          <div class="campus-sublist" id="campusSublist"></div>
+        </div>
+      </div>
+      <div class="divider"></div>
+
+      <!-- Statuses -->
+      <div>
+        <div class="block-title">// статусы проекта</div>
+        <div class="cb-group">
+          <div class="cb-item checked" data-status="ACCEPTED"><div class="cb-box"><span class="cb-check">✓</span></div><div style="display:flex;align-items:center;gap:5px"><div class="sdot sdot-accepted"></div>ACCEPTED</div></div>
+          <div class="cb-item checked" data-status="IN_PROGRESS"><div class="cb-box"><span class="cb-check">✓</span></div><div style="display:flex;align-items:center;gap:5px"><div class="sdot sdot-progress"></div>IN_PROGRESS</div></div>
+          <div class="cb-item checked" data-status="IN_REVIEWS"><div class="cb-box"><span class="cb-check">✓</span></div><div style="display:flex;align-items:center;gap:5px"><div class="sdot sdot-reviews"></div>IN_REVIEWS</div></div>
+          <div class="cb-item checked" data-status="REGISTERED"><div class="cb-box"><span class="cb-check">✓</span></div><div style="display:flex;align-items:center;gap:5px"><div class="sdot sdot-registered"></div>REGISTERED</div></div>
+          <div class="cb-item" data-status="ASSIGNED"><div class="cb-box"><span class="cb-check">✓</span></div><div style="display:flex;align-items:center;gap:5px"><div class="sdot sdot-assigned"></div>ASSIGNED</div></div>
+          <div class="cb-item" data-status="FAILED"><div class="cb-box"><span class="cb-check">✓</span></div><div style="display:flex;align-items:center;gap:5px"><div class="sdot sdot-failed"></div>FAILED</div></div>
+        </div>
+      </div>
+      <div class="divider"></div>
+
+      <!-- Actions -->
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="btn btn-outline" id="backToOverviewBtn" style="display:none">← ОБЗОР</button>
+        <button class="btn btn-run" id="searchBtn">▶ НАЙТИ УЧАСТНИКОВ</button>
+        <div class="progress-bar-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+        <button class="btn btn-save" id="saveBtn" disabled>↓ СОХРАНИТЬ СПИСОК</button>
+        <button class="btn btn-csv" id="csvBtn" disabled>⇩ ЭКСПОРТ CSV</button>
+        <button class="btn btn-html" id="htmlBtn" disabled>⇩ ЭКСПОРТ HTML</button>
+        <button class="btn btn-outline" id="clearBtn">✕ ОЧИСТИТЬ СОХРАНЁННОЕ</button>
+      </div>
+      <div class="divider"></div>
+
+      <!-- Stats -->
+      <div>
+        <div class="block-title">// статистика</div>
+        <div class="stat-row">
+          <div class="stat-mini"><div class="stat-val" id="statTotal">—</div><div class="stat-lbl">Найдено</div></div>
+          <div class="stat-mini"><div class="stat-val green" id="statNew">—</div><div class="stat-lbl">Новых</div></div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="main-header">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div class="main-title">СПИСОК УЧАСТНИКОВ</div>
+        <div id="activeCampusesWrap"></div>
+      </div>
+      <div id="searchWrap" style="display:none">
+        <input class="search-input" id="searchFilter" placeholder="поиск по логину..." />
+      </div>
+    </div>
+    <div id="overviewWrap" style="display:none"><div id="overviewGrid" class="overview-grid"></div></div>
+    <div class="table-wrap" id="tableWrap" style="display:none">
+      <div class="state-box"><div class="state-icon">◎</div><div class="state-text">Войди и выбери проект</div></div>
+    </div>
+  </main>
+</div>
+
+<div class="detail-panel" id="detailPanel">
+  <div class="detail-header">
+    <div class="detail-login" id="detailLogin">—</div>
+    <button class="detail-close">✕</button>
+  </div>
+  <div class="detail-body" id="detailBody"></div>
+</div>
+<div class="toast" id="toast"><span id="toastIcon"></span><span id="toastMsg"></span></div>
+
+<script src="popup.js"></script>
+</body>
+</html>

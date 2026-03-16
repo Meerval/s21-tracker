@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "S21 Tracker",
+  "version": "1.0",
+  "description": "School 21 participant tracker",
+  "permissions": [
+    "storage",
+    "declarativeNetRequest",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://platform.21-school.ru/*",
+    "https://auth.21-school.ru/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "S21 Tracker"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset_1",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
